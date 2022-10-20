@@ -5,7 +5,7 @@ from pyrogram import Client
 from pyrogram.enums import ParseMode
 
 APPLICATION_NAME = 'Telegram_qBittorrent_Notifier'
-VERSION_NUMBER = '0.0.0'
+VERSION_NUMBER = '0.0.1'
 WORKING_DIRECTORY = None
 CONFIG_PATH = f"{str(Path.home())}/.config/{APPLICATION_NAME}.ini"
 
