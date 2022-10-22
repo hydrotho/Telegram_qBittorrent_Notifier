@@ -14,25 +14,22 @@ The first step requires you to obtain a valid Telegram API key (api_id and api_h
 
 ### Installation
 
-Download static binary file from [Releases](https://github.com/hydrotho/Telegram_qBittorrent_Notifier/releases/latest)
-and add it to your `$PATH`.
+Download static binary file from [Releases](https://github.com/hydrotho/Telegram_qBittorrent_Notifier/releases/latest),
+set execute permission and add it to your `$PATH`.
 
 ### Init
 
 When using this tool for the first time, you must execute the `init` command.
 
-Execute `Telegram_qBittorrent_Notifier init` and just follow the prompt.
+Execute `sudo Telegram_qBittorrent_Notifier init` and just follow the prompt.
 
 ```shell
 Usage: Telegram_qBittorrent_Notifier init [OPTIONS]
 
 Options:
-  --api-id API_ID                 Provide your telegram api_id.
-  --api-hash API_HASH             Provide your telegram api_hash.
-  -d, --working-directory WORKING_DIRECTORY
-                                  Specify the working directory, where the
-                                  Telegram session file should be saved.
-  --help                          Show this message and exit.
+  --api-id API_ID      Provide your telegram api_id.
+  --api-hash API_HASH  Provide your telegram api_hash.
+  --help               Show this message and exit.
 ```
 
 When the initialization is complete, you will receive a greeting message in your Telegram's `Saved Message`.
@@ -65,11 +62,10 @@ Options:
 
 ### Test
 
-For test purpose, you can use the `send` command directly to send a specified message.
+For test purpose, you can use the `send` command directly to send a specified message,
+like `Telegram_qBittorrent_Notifier send "Hello World"`.
 
 ```shell
-Telegram_qBittorrent_Notifier send "Hello World"
-
 Usage: Telegram_qBittorrent_Notifier send [OPTIONS] [MESSAGE]
 
 Options:
