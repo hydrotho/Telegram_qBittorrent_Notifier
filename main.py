@@ -1,17 +1,20 @@
-import click
-from configparser import ConfigParser
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
+import click
 from pyrogram import Client
-from pyrogram.enums import ParseMode
 
 APPLICATION_NAME = 'Telegram_qBittorrent_Notifier'
-VERSION_NUMBER = '0.0.1'
-WORKING_DIRECTORY = None
-CONFIG_PATH = f"{str(Path.home())}/.config/{APPLICATION_NAME}.ini"
+VERSION_NUMBER = '0.0.2'
+SAVE_DIRECTORY = f"/etc/{APPLICATION_NAME}"
+SESSION_FILE = f"{SAVE_DIRECTORY}/{APPLICATION_NAME}.session"
 
 
 @click.group()
-@click.version_option(version=VERSION_NUMBER, prog_name=APPLICATION_NAME)
+@click.version_option(prog_name=APPLICATION_NAME, version=VERSION_NUMBER)
 def cli():
     pass
 
@@ -30,27 +33,16 @@ def cli():
     hide_input=True,
     help="Provide your telegram api_hash."
 )
-@click.option(
-    "-d",
-    "--working-directory",
-    metavar="WORKING_DIRECTORY",
-    prompt=True,
-    default=f"{Path.home() / '.cache'}",
-    help="Specify the working directory, where the Telegram session file should be saved."
-)
-def init(api_id, api_hash, working_directory):
-    directory = Path(working_directory)
-    session_file = directory / (APPLICATION_NAME + '.session')
-    directory.mkdir(parents=True, exist_ok=True)
-    session_file.unlink(missing_ok=True)
+def init(api_id, api_hash):
+    if os.geteuid() != 0:
+        subprocess.check_call(['sudo', sys.argv[0], 'init', '--api-id', api_id, '--api-hash', api_hash])
+        sys.exit()
 
-    config['DEFAULT']['working_directory'] = working_directory
-    with open(CONFIG_PATH, 'w') as config_file:
-        config.write(config_file)
+    Path(SAVE_DIRECTORY).mkdir(parents=True, exist_ok=True)
+    Path(SESSION_FILE).unlink(missing_ok=True)
 
-    app = Client(APPLICATION_NAME, api_id=api_id, api_hash=api_hash,
-                 app_version=APPLICATION_NAME + ' ' + VERSION_NUMBER,
-                 workdir=working_directory, parse_mode=ParseMode.MARKDOWN, hide_password=True)
+    app = Client(APPLICATION_NAME, api_id=api_id, api_hash=api_hash, app_version=f"{APPLICATION_NAME} {VERSION_NUMBER}",
+                 workdir=SAVE_DIRECTORY, hide_password=True)
     app.run(send_message(app))
 
 
@@ -94,14 +86,14 @@ def notify(torrent_name, category, tags, content_path, root_path, save_path, num
         tag_list = tags.split(',')
         message += f"Tags: #" + " #".join(tag_list)
 
-    app = Client(APPLICATION_NAME, workdir=WORKING_DIRECTORY, parse_mode=ParseMode.MARKDOWN)
+    app = Client(APPLICATION_NAME, app_version=f"{APPLICATION_NAME} {VERSION_NUMBER}", no_updates=True)
     app.run(send_message(app, message))
 
 
 @cli.command()
 @click.argument("message", required=False)
 def send(message):
-    app = Client(APPLICATION_NAME, workdir=WORKING_DIRECTORY, parse_mode=ParseMode.MARKDOWN)
+    app = Client(APPLICATION_NAME, app_version=f"{APPLICATION_NAME} {VERSION_NUMBER}", no_updates=True)
     app.run(send_message(app, message))
 
 
@@ -114,9 +106,7 @@ async def send_message(app, message: str = None):
 
 
 if __name__ == '__main__':
-    config = ConfigParser()
-    if Path(CONFIG_PATH).exists():
-        config.read(CONFIG_PATH)
-        WORKING_DIRECTORY = config['DEFAULT']['working_directory']
+    if Path(SESSION_FILE).exists() is True:
+        shutil.copy(SESSION_FILE, Path(sys.argv[0]).parent)
 
     cli()
