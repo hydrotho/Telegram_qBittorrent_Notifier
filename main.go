@@ -54,12 +54,12 @@ func main() {
 	}
 
 	sendFlags := []cli.Flag{
-		&cli.StringFlag{
+		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:        "magic-word",
 			Usage:       "Custom `PREFIX` for --category/-l and --tags/-g options",
 			Value:       "6д9",
 			Destination: &magicWord,
-		},
+		}),
 		&cli.StringFlag{
 			Name:     "torrent-name",
 			Aliases:  []string{"n"},
@@ -169,7 +169,7 @@ func main() {
 			{
 				Name:   "send",
 				Usage:  "Send a notification with provided torrent information",
-				Before: altsrc.InitInputSourceWithContext(rootFlags, altsrc.NewYamlSourceFromFlagFunc("config")),
+				Before: altsrc.InitInputSourceWithContext(sendFlags, altsrc.NewYamlSourceFromFlagFunc("config")),
 				Action: sendNotification,
 				Flags:  sendFlags,
 			},
