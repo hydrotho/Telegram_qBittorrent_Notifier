@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,6 +12,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/h2non/filetype"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 )
@@ -159,6 +163,10 @@ func main() {
 			Usage:    "`%K`: Torrent ID",
 			Category: "Torrent Information",
 		},
+		&cli.StringFlag{
+			Name:  "thumbnail-source",
+			Usage: "Generate a thumbnail from `FILE` (recommended to be the same as the `--content-path/-f` option)",
+		},
 	}
 
 	app := &cli.App{
@@ -234,6 +242,7 @@ func sendNotification(c *cli.Context) error {
 			notification += groupInfo + "\n"
 		}
 	}
+	notification = strings.TrimSpace(notification)
 
 	bot, err := tgbotapi.NewBotAPI(c.String("telegram-bot-token"))
 	if err != nil {
@@ -245,8 +254,19 @@ func sendNotification(c *cli.Context) error {
 		log.Printf("Authorized on account @%s", bot.Self.UserName)
 	}
 
-	msg := tgbotapi.NewMessage(c.Int64("telegram-chat-id"), strings.TrimSpace(notification))
-	if _, err = bot.Send(msg); err != nil {
+	var message tgbotapi.Chattable
+	message = tgbotapi.NewMessage(c.Int64("telegram-chat-id"), notification)
+
+	thumbnailSource := c.String("thumbnail-source")
+	if fileInfo, err := os.Stat(thumbnailSource); err == nil && !fileInfo.IsDir() {
+		if thumbnail, err := generateThumbnail(thumbnailSource); err == nil {
+			photo := tgbotapi.NewPhoto(c.Int64("telegram-chat-id"), tgbotapi.FileReader{Reader: thumbnail})
+			photo.Caption = notification
+			message = photo
+		}
+	}
+
+	if _, err := bot.Send(message); err != nil {
 		return err
 	}
 
@@ -254,9 +274,52 @@ func sendNotification(c *cli.Context) error {
 }
 
 func humanizeBytes(s string) string {
-	bytes, err := humanize.ParseBytes(s)
+	rawBytes, err := humanize.ParseBytes(s)
 	if err != nil {
 		return ""
 	}
-	return humanize.Bytes(bytes)
+	return humanize.Bytes(rawBytes)
+}
+
+func isVideoFile(fileName string) (bool, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return false, fmt.Errorf("error opening file: %w", err)
+	}
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			log.Printf("error closing file: %v", err)
+		}
+	}()
+
+	header := make([]byte, 261)
+	if _, err := file.Read(header); err != nil {
+		return false, fmt.Errorf("error reading file: %w", err)
+	}
+
+	return filetype.IsVideo(header), nil
+}
+
+func generateThumbnail(fileName string) (io.Reader, error) {
+	isVideo, err := isVideoFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+	if !isVideo {
+		return nil, fmt.Errorf("file is not a video: %s", fileName)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	err = ffmpeg.Input(fileName).
+		Filter("thumbnail", ffmpeg.Args{}).
+		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "format": "image2", "vcodec": "mjpeg"}).
+		WithOutput(buf).
+		Silent(true).
+		Run()
+	if err != nil {
+		return nil, fmt.Errorf("ffmpeg error generating thumbnail: %w", err)
+	}
+
+	return buf, nil
 }
