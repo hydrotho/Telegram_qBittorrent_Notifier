@@ -34,6 +34,18 @@ These formats use "6д9" as a prefix to ensure that the CLI does not encounter p
 
 You can customize this magic word in the configuration file or by using the `--magic-word` option.
 
+### Thumbnail
+
+Enhance your notifications with the thumbnail feature for a more visually engaging experience.
+
+When a valid video file is specified via `--thumbnail-source` option, the tool uses FFmpeg to automatically generate a thumbnail, adding a visual element to your Telegram notifications.
+
+```sh
+❯ Telegram_qBittorrent_Notifier send --thumbnail-source "%F" -n "%N"
+```
+
+Please ensure FFmpeg is installed and can be executed directly from the command line. The tool performs an automatic check for FFmpeg. In case FFmpeg is not detected or cannot be executed, the thumbnail generation will not take place.
+
 ## Support
 
 If you encounter any issues or have any suggestions, please [open an issue](https://github.com/hydrotho/Telegram_qBittorrent_Notifier/issues).
