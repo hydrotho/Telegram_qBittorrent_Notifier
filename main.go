@@ -311,8 +311,7 @@ func generateThumbnail(fileName string) (io.Reader, error) {
 	}
 
 	buf := bytes.NewBuffer(nil)
-	err = ffmpeg.Input(fileName).
-		Filter("thumbnail", ffmpeg.Args{}).
+	err = ffmpeg.Input(fileName, ffmpeg.KwArgs{"ss": 5}).
 		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "format": "image2", "vcodec": "mjpeg"}).
 		WithOutput(buf).
 		Silent(true).
