@@ -31,6 +31,18 @@ var tags string
 func main() {
 	configDir, _ := os.UserConfigDir()
 	defaultConfigPath := filepath.Join(configDir, ApplicationName, "config.yaml")
+	if _, err := os.Stat(defaultConfigPath); os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(defaultConfigPath), 0755)
+		if err != nil {
+			log.Fatalf("Failed to create config directory: %v", err)
+		}
+		_, err := os.Create(defaultConfigPath)
+		if err != nil {
+			log.Fatalf("Failed to create config file: %v", err)
+		}
+	} else if err != nil {
+		log.Fatalf("Failed to check config file: %v", err)
+	}
 
 	rootFlags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
